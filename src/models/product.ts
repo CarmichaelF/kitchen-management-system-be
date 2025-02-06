@@ -7,13 +7,13 @@ interface IIngredient {
   quantity: number
 }
 
-interface Product extends Document {
+export interface ProductDTO extends Document {
   name: string
   ingredients: IIngredient[]
   createdAt: Date
 }
 
-const ProductSchema = new Schema<Product>({
+const ProductSchema = new Schema<ProductDTO>({
   name: { type: String, required: true, unique: true },
   ingredients: [
     {
@@ -22,11 +22,11 @@ const ProductSchema = new Schema<Product>({
         ref: 'Input',
         required: true,
       },
-      name: { type: String, required: true, unique: true },
+      name: { type: String, required: true },
       quantity: { type: Number, required: true, min: 0 },
     },
   ],
   createdAt: { type: Date, default: Date.now },
 })
 
-export default model<Product>('Product', ProductSchema)
+export default model<ProductDTO>('Product', ProductSchema)

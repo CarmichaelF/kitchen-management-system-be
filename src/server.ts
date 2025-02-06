@@ -21,7 +21,7 @@ mongoose
 
 app.register(cors, {
   origin: "*",
-  methods: ["GET", "POST", "PUT", "DELETE"],
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
 });
 
 app.register(fastifyMongodb, {

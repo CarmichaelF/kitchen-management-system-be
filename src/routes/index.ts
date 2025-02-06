@@ -16,6 +16,17 @@ import {
 } from '../controllers/inventory'
 import { createPricing, getPricings } from '../controllers/pricing'
 import { createProduct, getProducts } from '../controllers/product'
+import {
+  createOrder,
+  getOrders,
+  updateOrderPosition,
+  updateOrderStatus,
+} from '../controllers/order'
+import {
+  createCustomer,
+  getAllCustomers,
+  getCustomerById,
+} from '../controllers/customer'
 
 export async function routes(app: FastifyInstance) {
   // input
@@ -50,4 +61,16 @@ export async function routes(app: FastifyInstance) {
 
   app.post('/auth/register', createUser)
   app.post('/auth/login', loginUser)
+
+  // order
+
+  app.post('/order', createOrder)
+  app.get('/order', getOrders)
+  app.patch('/order/:id/status', updateOrderStatus)
+  app.patch('/order/:id/position', updateOrderPosition)
+
+  // customer
+  app.post('/customer', createCustomer)
+  app.get('/customer', getAllCustomers)
+  app.get('/customer/:id', getCustomerById)
 }
