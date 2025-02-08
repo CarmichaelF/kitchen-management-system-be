@@ -27,6 +27,34 @@ export const createCustomer = async (
   }
 }
 
+export const updateCustomer = async (
+  request: FastifyRequest,
+  reply: FastifyReply,
+) => {
+  const { id } = request.params as { id: string }
+  const { name, email, phone, address } = request.body as Partial<CustomerDTO>
+
+  try {
+    const updatedCustomer = await Customer.findByIdAndUpdate(
+      id,
+      { name, email, phone, address },
+      { new: true, runValidators: true },
+    )
+
+    if (!updatedCustomer) {
+      return reply.status(404).send({ message: 'Cliente não encontrado' })
+    }
+
+    return reply.send({
+      message: 'Cliente atualizado com sucesso',
+      customer: updatedCustomer,
+    })
+  } catch (err) {
+    console.error('Erro ao atualizar cliente:', err)
+    return reply.status(500).send({ message: 'Erro ao atualizar cliente' })
+  }
+}
+
 // Retorna todos os clientes cadastrados
 export const getAllCustomers = async (
   request: FastifyRequest,

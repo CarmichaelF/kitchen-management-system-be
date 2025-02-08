@@ -14,8 +14,17 @@ import {
   getInventoryById,
   updateInventory,
 } from '../controllers/inventory'
-import { createPricing, getPricings } from '../controllers/pricing'
-import { createProduct, getProducts } from '../controllers/product'
+import {
+  createPricing,
+  deletePricing,
+  getPricings,
+  updatePricing,
+} from '../controllers/pricing'
+import {
+  createProduct,
+  getProducts,
+  updateProduct,
+} from '../controllers/product'
 import {
   createOrder,
   getOrders,
@@ -26,6 +35,7 @@ import {
   createCustomer,
   getAllCustomers,
   getCustomerById,
+  updateCustomer,
 } from '../controllers/customer'
 
 export async function routes(app: FastifyInstance) {
@@ -52,10 +62,13 @@ export async function routes(app: FastifyInstance) {
   // Criar nova precificação
   app.post('/pricing', createPricing)
   app.get('/pricing', getPricings)
+  app.put('/pricing/:id', updatePricing)
+  app.delete('/pricing/:id', deletePricing)
 
   // products
   app.post('/product', createProduct)
   app.get('/product', getProducts)
+  app.put('/product/:id', updateProduct)
 
   // user
 
@@ -73,4 +86,5 @@ export async function routes(app: FastifyInstance) {
   app.post('/customer', createCustomer)
   app.get('/customer', getAllCustomers)
   app.get('/customer/:id', getCustomerById)
+  app.put('/customer/:id', updateCustomer)
 }

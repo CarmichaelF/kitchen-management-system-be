@@ -1,8 +1,8 @@
 import { Schema, model, Document, Types } from 'mongoose'
-import { Input } from './input'
+import Inventory from './inventory'
 
 interface IIngredient {
-  inventoryID: Types.ObjectId | typeof Input
+  inventory: Types.ObjectId | typeof Inventory
   name: string
   quantity: number
 }
@@ -17,9 +17,9 @@ const ProductSchema = new Schema<ProductDTO>({
   name: { type: String, required: true, unique: true },
   ingredients: [
     {
-      inventoryID: {
+      inventory: {
         type: Schema.Types.ObjectId,
-        ref: 'Input',
+        ref: 'Inventory',
         required: true,
       },
       name: { type: String, required: true },

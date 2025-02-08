@@ -73,7 +73,7 @@ export const createOrder = async (req: FastifyRequest, reply: FastifyReply) => {
       // Para cada ingrediente do produto, desconta do estoque
       for (const ingredient of product.ingredients) {
         // ingredient deve ter: inventoryID, quantity (a quantidade necessária para uma unidade do produto)
-        const inventory = await Inventory.findById(ingredient.inventoryID)
+        const inventory = await Inventory.findById(ingredient.inventory)
         if (!inventory) {
           return reply.code(400).send({
             message: `Estoque não encontrado para o ingrediente ${ingredient.name}.`,
@@ -106,6 +106,7 @@ export const createOrder = async (req: FastifyRequest, reply: FastifyReply) => {
       date: new Date(),
       dueDate: new Date(dueDate), // Novo campo: data limite
       notes, // Novo campo: observações (opcional)
+      position: 0,
     })
 
     await order.save()
