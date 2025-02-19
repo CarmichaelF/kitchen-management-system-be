@@ -1,20 +1,20 @@
-import { Schema, model, Document, Types } from 'mongoose'
-import Inventory from './inventory'
+import { Schema, Document, Types, model } from 'mongoose'
+import { InventoryDTO } from './inventory'
 
-interface IIngredient {
-  inventory: Types.ObjectId | typeof Inventory
-  name: string
+export interface Ingredient {
+  inventory: Types.ObjectId | InventoryDTO
   quantity: number
-}
-
-export interface ProductDTO extends Document {
   name: string
-  ingredients: IIngredient[]
-  createdAt: Date
 }
 
-const ProductSchema = new Schema<ProductDTO>({
-  name: { type: String, required: true, unique: true },
+export interface Product extends Document {
+  name: string
+  isDeleted: boolean
+  ingredients: Ingredient[]
+}
+
+const ProductSchema = new Schema<Product>({
+  name: { type: String, required: true },
   ingredients: [
     {
       inventory: {
@@ -22,11 +22,11 @@ const ProductSchema = new Schema<ProductDTO>({
         ref: 'Inventory',
         required: true,
       },
+      quantity: { type: Number, required: true },
       name: { type: String, required: true },
-      quantity: { type: Number, required: true, min: 0 },
     },
   ],
-  createdAt: { type: Date, default: Date.now },
+  isDeleted: { type: Boolean, required: false, default: false },
 })
 
-export default model<ProductDTO>('Product', ProductSchema)
+export default model<Product>('Product', ProductSchema)

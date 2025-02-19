@@ -1,22 +1,24 @@
-import { Schema, model, Document, Types } from 'mongoose'
-import Product from './product'
+import { Schema, Document, Types, model } from 'mongoose'
+import { Product } from './product'
 
-interface Pricing extends Document {
-  product: Types.ObjectId | typeof Product
+export interface Pricing extends Document {
+  product: Types.ObjectId | Product
   profitMargin: number
-  additionalCosts: number
   platformFee: number
   sellingPrice: number
   createdAt: Date
+  productionCost: number
+  yields: number
 }
 
 const PricingSchema = new Schema<Pricing>({
   product: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
   profitMargin: { type: Number, required: true, min: 0 },
-  additionalCosts: { type: Number, required: true, min: 0 },
   platformFee: { type: Number, required: true, min: 0 },
   sellingPrice: { type: Number, required: true },
   createdAt: { type: Date, default: Date.now },
+  productionCost: { type: Number, required: true },
+  yields: { type: Number, required: true, min: 1 },
 })
 
 export default model<Pricing>('Pricing', PricingSchema)

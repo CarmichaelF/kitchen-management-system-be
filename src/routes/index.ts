@@ -6,7 +6,7 @@ import {
   getInputById,
   updateInput,
 } from '../controllers/input'
-import { createUser, loginUser } from '../controllers/user'
+import { createUser, loginUser, validateToken } from '../controllers/user'
 import {
   createInventory,
   deleteInventory,
@@ -17,34 +17,55 @@ import {
 import {
   createPricing,
   deletePricing,
+  getFixedCosts,
   getPricings,
+  recalculatePricing,
+  updateFixedCosts,
   updatePricing,
 } from '../controllers/pricing'
 import {
   createProduct,
+  deleteProduct,
   getProducts,
   updateProduct,
 } from '../controllers/product'
 import {
+  cancelOrder,
   createOrder,
+  generateOrderReport,
+  getOrderById,
   getOrders,
-  updateOrderPosition,
+  getSalesAndProductionCost,
   updateOrderStatus,
 } from '../controllers/order'
 import {
   createCustomer,
+  deleteCustomer,
   getAllCustomers,
   getCustomerById,
   updateCustomer,
 } from '../controllers/customer'
+import { authMiddleware, requireRole } from '../middlewares/auth'
+import { startWebsocket } from '../controllers/websocket'
+import { getMessages } from '../controllers/notifications-message'
 
 export async function routes(app: FastifyInstance) {
+  app.addHook('preHandler', authMiddleware)
+  // user
+  app.post('/auth/register', createUser)
+  app.post('/auth/login', loginUser)
+  app.post('/auth/validate', validateToken)
+
   // input
   app.get('/input', getAllInputs)
   app.get('/input/:id', getInputById)
   app.post('/input', createInput)
   app.put('/input/:id', updateInput)
-  app.delete('/input/:id', deleteInput)
+  app.delete(
+    '/input/:id',
+    { preHandler: requireRole(['admin', 'editor']) },
+    deleteInput,
+  )
 
   // inventory
   app.get('/inventory', getAllInventories)
@@ -55,7 +76,11 @@ export async function routes(app: FastifyInstance) {
 
   app.put('/inventory/:id', updateInventory)
 
-  app.delete('/inventory/:id', deleteInventory)
+  app.delete(
+    '/inventory/:id',
+    { preHandler: requireRole(['admin', 'editor']) },
+    deleteInventory,
+  )
 
   // pricing
 
@@ -63,28 +88,53 @@ export async function routes(app: FastifyInstance) {
   app.post('/pricing', createPricing)
   app.get('/pricing', getPricings)
   app.put('/pricing/:id', updatePricing)
-  app.delete('/pricing/:id', deletePricing)
+  app.delete(
+    '/pricing/:id',
+    { preHandler: requireRole(['admin', 'editor']) },
+    deletePricing,
+  )
+  app.post('/pricing/:pricingId/recalculate', recalculatePricing)
+  app.get('/pricing/fixed-costs', getFixedCosts)
+  app.post(
+    '/pricing/fixed-costs',
+    { preHandler: requireRole(['admin', 'editor']) },
+    updateFixedCosts,
+  )
 
   // products
   app.post('/product', createProduct)
   app.get('/product', getProducts)
   app.put('/product/:id', updateProduct)
-
-  // user
-
-  app.post('/auth/register', createUser)
-  app.post('/auth/login', loginUser)
+  app.delete(
+    '/product/:id',
+    { preHandler: requireRole(['admin', 'editor']) },
+    deleteProduct,
+  )
 
   // order
 
   app.post('/order', createOrder)
   app.get('/order', getOrders)
+  app.get('/order/:id', getOrderById)
+  app.get('/order/sales', getSalesAndProductionCost)
   app.patch('/order/:id/status', updateOrderStatus)
-  app.patch('/order/:id/position', updateOrderPosition)
+  app.delete('/order/:id', cancelOrder)
+  app.get('/order/notifications', getOrders)
+
+  app.get('/orders/report', generateOrderReport)
 
   // customer
   app.post('/customer', createCustomer)
   app.get('/customer', getAllCustomers)
   app.get('/customer/:id', getCustomerById)
   app.put('/customer/:id', updateCustomer)
+  app.delete(
+    '/customer/:id',
+    { preHandler: requireRole(['admin', 'editor']) },
+    deleteCustomer,
+  )
+
+  // Rota para WebSocket
+  app.get('/ws', { websocket: true }, startWebsocket)
+  app.get('/notifications', getMessages)
 }

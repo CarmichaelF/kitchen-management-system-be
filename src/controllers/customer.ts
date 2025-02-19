@@ -86,3 +86,20 @@ export const getCustomerById = async (
     return reply.status(500).send({ message: 'Erro ao buscar cliente' })
   }
 }
+
+export const deleteCustomer = async (
+  request: FastifyRequest,
+  reply: FastifyReply,
+) => {
+  const { id } = request.params as {
+    id: string
+  }
+
+  try {
+    await Customer.findByIdAndDelete(id)
+    return { message: 'Cliente deletado com sucesso' }
+  } catch (err) {
+    console.error('Error deleting input:', err)
+    return reply.status(500).send({ message: 'Erro ao deletar cliente' })
+  }
+}

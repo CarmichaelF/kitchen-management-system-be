@@ -1,9 +1,26 @@
-import mongoose from 'mongoose'
+import mongoose, { Document, Model, Schema } from 'mongoose'
 
-const userSchema = new mongoose.Schema({
+// Definindo a interface para o usuário
+export interface IUser {
+  name: string
+  email: string
+  password: string
+  role: 'admin' | 'editor' | 'user'
+}
+
+// Estendendo o Document com a interface IUser
+export interface IUserDocument extends IUser, Document<string> {}
+
+// Criando o Schema
+const userSchema = new Schema<IUserDocument>({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
-  password: { type: String, required: true }, // novo campo para senha
+  password: { type: String, required: true },
+  role: { type: String, required: true, enum: ['admin', 'editor', 'user'] },
 })
 
-export const User = mongoose.model('User', userSchema)
+// Criando o Model com a tipagem correta
+export const User: Model<IUserDocument> = mongoose.model<IUserDocument>(
+  'User',
+  userSchema,
+)

@@ -3,43 +3,54 @@ import Product from '../models/product'
 import Inventory, { Unity } from '../models/inventory'
 import { Input } from '../models/input'
 
+// Tipos atualizados
+type ProductBody = {
+  name: string
+  yield: number
+  ingredients: {
+    inventory: string
+    quantity: number
+    unity: Unity
+    name: string
+  }[]
+}
+
+// Criar produto (atualizado com yield)
 export const createProduct = async (
   req: FastifyRequest,
   reply: FastifyReply,
 ) => {
   try {
-    // Supondo que req.body contenha os dados do produto, incluindo ingredients
-    const productData = req.body as {
-      name: string
-      ingredients: {
-        inventory: string
-        quantity: number
-        unity: Unity
-        name: string
-      }[]
+    const productData = req.body as ProductBody
+
+    // Validação do yield
+    if (!productData.yield || productData.yield < 1) {
+      return reply.code(400).send({
+        message: 'Rendimento da receita deve ser maior que zero',
+      })
     }
-    // Para cada ingrediente, verifica se há estoque suficiente
+
+    // Verificação de estoque
     for (const ingredient of productData.ingredients) {
-      // Busca no Inventory o registro correspondente ao input do ingrediente
       const inventory = await Inventory.findOne({ _id: ingredient.inventory })
       const input = await Input.findOne({ _id: inventory?.input })
+
       if (!inventory) {
-        reply.code(400).send({
+        return reply.code(400).send({
           message: `Estoque não encontrado para o ingrediente ${input?.name}`,
         })
-        return
       }
-      // Verifica se a quantidade disponível no estoque é suficiente
+
       if (inventory.quantity < ingredient.quantity) {
-        reply.code(400).send({
+        return reply.code(400).send({
           message: `Estoque insuficiente para o ingrediente ${input?.name}`,
         })
-        return
       }
     }
-    // Se todas as validações passaram, cria e salva o produto
+
     const product = new Product(productData)
     await product.save()
+
     reply.code(201).send(product)
   } catch (err) {
     console.error('Erro ao criar produto:', err)
@@ -47,67 +58,85 @@ export const createProduct = async (
   }
 }
 
+// Atualizar produto (atualizado com yield)
 export const updateProduct = async (
   req: FastifyRequest,
   reply: FastifyReply,
 ) => {
   try {
-    const { id } = req.params as { id: string } // Obtém o ID do produto da URL
-    const productData = req.body as {
-      name?: string // Propriedades opcionais para permitir a atualização parcial
-      ingredients?: {
-        inventory: string
-        quantity: number
-        unity: Unity
-        name: string
-      }[]
-    }
+    const { id } = req.params as { id: string }
+    const productData = req.body as Partial<ProductBody>
 
-    // Verifica se o produto existe
     const product = await Product.findById(id)
-    if (!product) {
-      reply.code(404).send({ message: 'Produto não encontrado' })
-      return
+    if (!product || product.isDeleted) {
+      return reply.code(404).send({ message: 'Produto não encontrado' })
     }
 
-    // Se ingredientes foram passados na atualização, valida cada um
+    // Validação do yield se fornecido
+    if (productData.yield !== undefined && productData.yield < 1) {
+      return reply.code(400).send({
+        message: 'Rendimento da receita deve ser maior que zero',
+      })
+    }
+
+    // Verificação de estoque
     if (productData.ingredients) {
       for (const ingredient of productData.ingredients) {
-        const inventory = await Inventory.findOne({
-          _id: ingredient.inventory,
-        })
+        const inventory = await Inventory.findOne({ _id: ingredient.inventory })
         const input = await Input.findOne({ _id: inventory?.input })
+
         if (!inventory) {
-          reply.code(400).send({
+          return reply.code(400).send({
             message: `Estoque não encontrado para o ingrediente ${input?.name}`,
           })
-          return
         }
 
-        // Verifica se há estoque suficiente
         if (inventory.quantity < ingredient.quantity) {
-          reply.code(400).send({
+          return reply.code(400).send({
             message: `Estoque insuficiente para o ingrediente ${input?.name}`,
           })
-          return
         }
       }
     }
 
-    // Atualiza o produto com os dados fornecidos
-    await Product.findByIdAndUpdate(id, productData, { new: true })
-    const updatedProduct = await Product.findById(id)
+    const updatedProduct = await Product.findByIdAndUpdate(id, productData, {
+      new: true,
+    })
 
-    reply.code(200).send(updatedProduct) // Retorna o produto atualizado
+    reply.code(200).send(updatedProduct)
   } catch (err) {
     console.error('Erro ao atualizar produto:', err)
     reply.code(500).send({ message: 'Erro ao atualizar produto' })
   }
 }
 
+// "Deletar" produto (mantido igual)
+export const deleteProduct = async (
+  req: FastifyRequest,
+  reply: FastifyReply,
+) => {
+  try {
+    const { id } = req.params as { id: string }
+
+    const product = await Product.findById(id)
+    if (!product || product.isDeleted) {
+      return reply.code(404).send({ message: 'Produto não encontrado' })
+    }
+
+    await Product.findByIdAndUpdate(id, { isDeleted: true })
+    return reply.code(200).send({ message: 'Produto marcado como deletado' })
+  } catch (error) {
+    return reply.code(500).send({ message: 'Erro ao deletar produto', error })
+  }
+}
+
+// Buscar produtos (atualizado para incluir yield)
 export const getProducts = async (req: FastifyRequest, reply: FastifyReply) => {
   try {
-    const products = await Product.find().populate('ingredients.inventory')
+    const products = await Product.find({ isDeleted: false })
+      .populate('ingredients.inventory')
+      .select('name ingredients yield') // Garante que o yield seja retornado
+
     reply.send(products)
   } catch (err) {
     console.log(err)

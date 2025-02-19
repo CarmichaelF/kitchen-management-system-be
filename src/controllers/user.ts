@@ -1,5 +1,5 @@
 // controllers/userController.ts
-import { User } from '../models/user'
+import { IUserDocument, User } from '../models/user'
 import { FastifyRequest, FastifyReply } from 'fastify'
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
@@ -8,6 +8,7 @@ interface UserRegisterDTO {
   name: string
   email: string
   password: string
+  role: 'admin' | 'editor' | 'user'
 }
 
 interface UserLoginDTO {
@@ -21,24 +22,32 @@ const generateToken = (user: { _id: string; email: string }) => {
   // O payload pode incluir apenas as informações necessárias
   if (!secret) return
   const token = jwt.sign({ userId: user._id, email: user.email }, secret, {
-    expiresIn: '1h',
+    expiresIn: '24h',
   })
   return token
 }
 
-// Rota para cadastro de usuário com hashing de senha
 export const createUser = async (
   request: FastifyRequest,
   reply: FastifyReply,
 ): Promise<FastifyReply> => {
-  const { name, email, password } = request.body as UserRegisterDTO
+  const { name, email, password, role } = request.body as UserRegisterDTO
+
   try {
-    // Hash da senha com um salt (número de rounds: 10 é um bom equilíbrio)
     const hashedPassword = await bcrypt.hash(password, 10)
-    const user = new User({ name, email, password: hashedPassword })
+
+    // Apenas permite atribuir "admin" se não houver admins no sistema (para o primeiro admin)
+    const isFirstAdmin = (await User.countDocuments({ role: 'admin' })) === 0
+    const userRole = isFirstAdmin ? 'admin' : role || 'user'
+
+    const user = new User({
+      name,
+      email,
+      password: hashedPassword,
+      role: userRole,
+    })
     const savedUser = await user.save()
 
-    // Gera o token após o cadastro
     const token = generateToken({
       _id: savedUser._id.toString(),
       email: savedUser.email,
@@ -55,14 +64,16 @@ export const createUser = async (
   }
 }
 
-// Rota para login com comparação de senha utilizando bcrypt
 export const loginUser = async (
   request: FastifyRequest,
   reply: FastifyReply,
 ): Promise<FastifyReply> => {
+  console.log('request', request)
   const { email, password } = request.body as UserLoginDTO
   try {
-    const user = await User.findOne({ email })
+    // Certifique-se de que o retorno seja tipado corretamente
+    const user = (await User.findOne({ email })) as IUserDocument
+
     if (!user) {
       return reply.status(404).send({ message: 'Usuário não encontrado' })
     }
@@ -83,5 +94,39 @@ export const loginUser = async (
   } catch (err) {
     console.error('Error logging in user:', err)
     return reply.status(500).send({ message: 'Erro no login' })
+  }
+}
+
+export const validateToken = async (
+  request: FastifyRequest,
+  reply: FastifyReply,
+) => {
+  try {
+    const authHeader = request.headers.authorization
+
+    if (!authHeader) {
+      return reply
+        .status(401)
+        .send({ valid: false, message: 'Token não fornecido' })
+    }
+
+    const token = authHeader.split(' ')[1] // Remove "Bearer "
+
+    if (!token) {
+      return reply.status(401).send({ valid: false, message: 'Token inválido' })
+    }
+
+    const secret = process.env.JWT_SECRET
+
+    if (!secret) throw new Error('Chave secreta não configurada')
+
+    jwt.verify(token, secret)
+
+    return reply.send({ valid: true })
+  } catch (error) {
+    console.error('❌ Erro ao validar o token:', error)
+    return reply
+      .status(401)
+      .send({ valid: false, message: 'Token inválido ou expirado' })
   }
 }

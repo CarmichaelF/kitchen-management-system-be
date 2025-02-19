@@ -1,27 +1,46 @@
-import mongoose, { Schema } from 'mongoose'
+import mongoose, { Schema, Document, Types } from 'mongoose'
+import Pricing, { Pricing as PrigingDTO } from './pricing'
+import { Customer } from './customer'
+
+export interface OrderItem {
+  pricing: PrigingDTO
+  quantity: number
+  pricingDetails: typeof Pricing
+}
+
+export interface Order extends Document {
+  items: OrderItem[]
+  totalPrice: number
+  date: Date
+  dueDate: Date
+  notes?: string
+  status: string
+  customer: Types.ObjectId
+  customerDetails: typeof Customer
+}
 
 const orderItemSchema = new mongoose.Schema({
-  pricing: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Pricing',
-    required: true,
-  },
+  pricing: { type: Schema.Types.ObjectId, ref: 'Pricing', required: true },
   quantity: { type: Number, required: true },
+  pricingDetails: {
+    type: Schema.Types.Mixed,
+    required: false,
+  },
 })
 
 const orderSchema = new mongoose.Schema({
   items: { type: [orderItemSchema], required: true },
   totalPrice: { type: Number, required: true },
   date: { type: Date, default: Date.now },
-  dueDate: { type: Date, required: true }, // Novo campo: data limite
-  notes: { type: String, required: false }, // Novo campo: observações (opcional)
+  dueDate: { type: Date, required: true },
+  notes: { type: String, required: false },
   status: {
     type: String,
-    enum: ['Não Iniciado', 'Em Andamento', 'Concluído'],
+    enum: ['Não Iniciado', 'Em Andamento', 'Concluído', 'Cancelado'],
     default: 'Não Iniciado',
   },
   customer: { type: Schema.Types.ObjectId, ref: 'Customer', required: true },
-  position: { type: Number, required: true },
+  customerDetails: { type: Schema.Types.Mixed, required: true },
 })
 
-export const Order = mongoose.model('Order', orderSchema)
+export default mongoose.model<Order>('Order', orderSchema)
