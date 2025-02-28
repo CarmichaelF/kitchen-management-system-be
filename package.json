@@ -12,6 +12,7 @@
   "dependencies": {
     "@fastify/cors": "^10.0.2",
     "@fastify/websocket": "^11.0.2",
+    "axios": "^1.7.9",
     "bcrypt": "^5.1.1",
     "dotenv": "^16.4.7",
     "exceljs": "^4.4.0",

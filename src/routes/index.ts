@@ -137,4 +137,14 @@ export async function routes(app: FastifyInstance) {
   // Rota para WebSocket
   app.get('/ws', { websocket: true }, startWebsocket)
   app.get('/notifications', getMessages)
+
+  // iFood
+
+  app.post('/webhook/ifood', async (request, reply) => {
+    const pedido = request.body
+    // Lógica para processar o pedido recebido
+    // Por exemplo, salvar no banco de dados, atualizar status, etc.
+    console.log('pedido', pedido)
+    reply.code(200).send({ message: 'Pedido recebido com sucesso' })
+  })
 }

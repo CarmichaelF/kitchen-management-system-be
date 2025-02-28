@@ -1,11 +1,11 @@
 import mongoose, { Schema, Document, Types } from 'mongoose'
-import Pricing, { Pricing as PrigingDTO } from './pricing'
+import { Pricing as PrigingDTO } from './pricing'
 import { Customer } from './customer'
 
 export interface OrderItem {
   pricing: PrigingDTO
   quantity: number
-  pricingDetails: typeof Pricing
+  pricingDetails: PrigingDTO
 }
 
 export interface Order extends Document {

@@ -6,7 +6,6 @@ import { Input } from '../models/input'
 // Tipos atualizados
 type ProductBody = {
   name: string
-  yield: number
   ingredients: {
     inventory: string
     quantity: number
@@ -15,20 +14,12 @@ type ProductBody = {
   }[]
 }
 
-// Criar produto (atualizado com yield)
 export const createProduct = async (
   req: FastifyRequest,
   reply: FastifyReply,
 ) => {
   try {
     const productData = req.body as ProductBody
-
-    // Validação do yield
-    if (!productData.yield || productData.yield < 1) {
-      return reply.code(400).send({
-        message: 'Rendimento da receita deve ser maior que zero',
-      })
-    }
 
     // Verificação de estoque
     for (const ingredient of productData.ingredients) {
@@ -38,12 +29,6 @@ export const createProduct = async (
       if (!inventory) {
         return reply.code(400).send({
           message: `Estoque não encontrado para o ingrediente ${input?.name}`,
-        })
-      }
-
-      if (inventory.quantity < ingredient.quantity) {
-        return reply.code(400).send({
-          message: `Estoque insuficiente para o ingrediente ${input?.name}`,
         })
       }
     }
@@ -58,7 +43,6 @@ export const createProduct = async (
   }
 }
 
-// Atualizar produto (atualizado com yield)
 export const updateProduct = async (
   req: FastifyRequest,
   reply: FastifyReply,
@@ -72,13 +56,6 @@ export const updateProduct = async (
       return reply.code(404).send({ message: 'Produto não encontrado' })
     }
 
-    // Validação do yield se fornecido
-    if (productData.yield !== undefined && productData.yield < 1) {
-      return reply.code(400).send({
-        message: 'Rendimento da receita deve ser maior que zero',
-      })
-    }
-
     // Verificação de estoque
     if (productData.ingredients) {
       for (const ingredient of productData.ingredients) {
@@ -88,12 +65,6 @@ export const updateProduct = async (
         if (!inventory) {
           return reply.code(400).send({
             message: `Estoque não encontrado para o ingrediente ${input?.name}`,
-          })
-        }
-
-        if (inventory.quantity < ingredient.quantity) {
-          return reply.code(400).send({
-            message: `Estoque insuficiente para o ingrediente ${input?.name}`,
           })
         }
       }
@@ -130,12 +101,12 @@ export const deleteProduct = async (
   }
 }
 
-// Buscar produtos (atualizado para incluir yield)
 export const getProducts = async (req: FastifyRequest, reply: FastifyReply) => {
   try {
-    const products = await Product.find({ isDeleted: false })
-      .populate('ingredients.inventory')
-      .select('name ingredients yield') // Garante que o yield seja retornado
+    const products = await Product.find({ isDeleted: false }).populate(
+      'ingredients.inventory',
+    )
+    console.log('products', products[0].ingredients)
 
     reply.send(products)
   } catch (err) {

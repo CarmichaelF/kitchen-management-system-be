@@ -15,6 +15,10 @@ export const authMiddleware = async (
       return
     }
 
+    if (request.url.includes('webhook')) {
+      return
+    }
+
     // O token vem normalmente no formato 'Bearer <token>'
     const token = authHeader?.split(' ')[1] || query.token
 

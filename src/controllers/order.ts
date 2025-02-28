@@ -36,6 +36,7 @@ import ExcelJS from 'exceljs' // Importe o modelo de mensagem
 export const createOrder = async (req: FastifyRequest, reply: FastifyReply) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const orderOBJ: any = {}
+  orderOBJ.items = []
   try {
     // Extrai os itens do pedido e os novos campos
     const { items, customerId, dueDate, notes } = req.body as {
@@ -45,8 +46,8 @@ export const createOrder = async (req: FastifyRequest, reply: FastifyReply) => {
         quantity: number
         pricingDetails: PricingDTO
       }[]
-      dueDate: string // Novo campo: data limite
-      notes?: string // Novo campo: observações (opcional)
+      dueDate: string
+      notes?: string
     }
 
     // Verifica se o cliente existe
@@ -102,12 +103,12 @@ export const createOrder = async (req: FastifyRequest, reply: FastifyReply) => {
         inventory.quantity -= amountToSubtract
         await inventory.save()
       }
-
-      orderOBJ.items = items.map((item) => ({
-        pricing: item.pricingId,
-        quantity: item.quantity,
+      console.log('pricing', pricing.toObject())
+      orderOBJ.items.push({
+        pricing: orderItem.pricingId,
+        quantity: orderItem.quantity,
         pricingDetails: pricing.toObject(),
-      }))
+      })
 
       // Acumula o total: preço de venda da precificação * quantidade vendida
       totalPrice += pricing.sellingPrice * orderItem.quantity
@@ -242,15 +243,7 @@ export const getSalesAndProductionCost = async (
     const orders = await Order.find({
       ...(Object.keys(dateFilter).length > 0 ? { date: dateFilter } : {}),
       status: 'Concluído',
-    })
-      .populate({
-        path: 'items.pricing',
-        populate: {
-          path: 'product',
-          model: 'Product',
-        },
-      })
-      .populate('customer')
+    }).populate('customer')
 
     let totalSales = 0
     let totalProductionCost = 0
@@ -258,14 +251,14 @@ export const getSalesAndProductionCost = async (
     for (const order of orders) {
       totalSales += order.totalPrice
       for (const item of order.items) {
-        const pricing = item.pricing
-        const product = await Product.findById(pricing.product)
+        const product = await Product.findById(item.pricingDetails.product._id)
 
         if (!product) {
           return reply.status(404).send({ message: 'Produto não encontrado' })
         }
 
-        totalProductionCost += pricing.productionCost * item.quantity
+        totalProductionCost +=
+          item.pricingDetails.productionCost * item.quantity
       }
     }
 

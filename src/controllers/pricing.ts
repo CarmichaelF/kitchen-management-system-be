@@ -3,6 +3,7 @@ import Product from '../models/product'
 import Inventory from '../models/inventory'
 import { FastifyReply, FastifyRequest } from 'fastify'
 import FixedCosts from '../models/fixed-costs'
+import { roundToNearest90 } from '../utils'
 
 // Calcula o custo de produção do produto (sem alterações)
 const calculateProductionCost = async (productId: string, yields: number) => {
@@ -46,6 +47,7 @@ const calculateSellingPrice = ({
   profitMargin,
   fixedCosts,
   platformFee,
+  packing,
 }: {
   productionCost: number
   profitMargin: number
@@ -58,6 +60,7 @@ const calculateSellingPrice = ({
     expectedMonthlySales: number
   }
   platformFee: number
+  packing: number
 }) => {
   if (platformFee >= 100) {
     throw new Error('Taxa da plataforma não pode ser 100% ou mais')
@@ -72,11 +75,12 @@ const calculateSellingPrice = ({
     fixedCosts.marketing +
     fixedCosts.accounting
   const fixedCostPerUnit = totalFixedCosts / fixedCosts.expectedMonthlySales
-  const sellingPrice = (
-    ((productionCost + fixedCostPerUnit) * (1 + profitMargin / 100)) /
-    (1 - platformFee / 100)
-  ).toFixed(2)
-  return Number(sellingPrice)
+  const totalCost = productionCost + fixedCostPerUnit + packing
+
+  const denominator = 1 - (platformFee / 100 + profitMargin / 100)
+  const sellingPrice = (totalCost / denominator).toFixed(2)
+
+  return roundToNearest90(Number(sellingPrice))
 }
 
 export const createPricing = async (
@@ -84,12 +88,14 @@ export const createPricing = async (
   reply: FastifyReply,
 ) => {
   try {
-    const { productId, profitMargin, platformFee, yields } = req.body as {
-      productId: string
-      profitMargin: number
-      platformFee: number
-      yields: number // Novo campo
-    }
+    const { productId, profitMargin, platformFee, yields, packing } =
+      req.body as {
+        productId: string
+        profitMargin: number
+        platformFee: number
+        yields: number
+        packing: number
+      }
 
     if (isNaN(profitMargin)) {
       return reply.code(400).send({ message: 'Margem de lucro inválida' })
@@ -121,6 +127,7 @@ export const createPricing = async (
       profitMargin,
       fixedCosts: fixedCosts.toObject(),
       platformFee,
+      packing,
     })
 
     const pricing = new Pricing({
@@ -129,7 +136,8 @@ export const createPricing = async (
       platformFee,
       sellingPrice,
       productionCost,
-      yields, // Novo campo
+      yields,
+      packing,
     })
 
     await pricing.save()
@@ -146,17 +154,20 @@ export const updatePricing = async (
   reply: FastifyReply,
 ) => {
   try {
-    const { pricingId, profitMargin, platformFee, yields } = req.body as {
-      pricingId: string
-      profitMargin?: number
-      platformFee?: number
-      yields?: number // Novo campo
-    }
+    const { pricingId, profitMargin, platformFee, yields, packing } =
+      req.body as {
+        pricingId: string
+        profitMargin?: number
+        platformFee?: number
+        yields?: number
+        packing?: number
+      }
 
     if (
       profitMargin === undefined &&
       platformFee === undefined &&
-      yields === undefined
+      yields === undefined &&
+      packing === undefined
     ) {
       return reply
         .code(400)
@@ -180,7 +191,8 @@ export const updatePricing = async (
 
     if (profitMargin !== undefined) pricing.profitMargin = profitMargin
     if (platformFee !== undefined) pricing.platformFee = platformFee
-    if (yields !== undefined) pricing.yields = yields // Novo campo
+    if (yields !== undefined) pricing.yields = yields
+    if (packing !== undefined) pricing.packing = packing
 
     const fixedCosts = await FixedCosts.findOne({})
     if (!fixedCosts) {
@@ -199,6 +211,7 @@ export const updatePricing = async (
       profitMargin: profitMargin ?? pricing.profitMargin,
       fixedCosts: fixedCosts.toObject(),
       platformFee: platformFee ?? pricing.platformFee,
+      packing: packing || pricing.packing,
     })
     pricing.sellingPrice = sellingPrice
 
@@ -250,6 +263,7 @@ export const recalculatePricing = async (
       profitMargin: pricing.profitMargin,
       fixedCosts: fixedCosts.toObject(),
       platformFee: pricing.platformFee,
+      packing: pricing.packing,
     })
     pricing.productionCost = productionCost
     pricing.sellingPrice = sellingPrice

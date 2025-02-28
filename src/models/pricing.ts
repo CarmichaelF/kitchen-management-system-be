@@ -9,6 +9,7 @@ export interface Pricing extends Document {
   createdAt: Date
   productionCost: number
   yields: number
+  packing: number
 }
 
 const PricingSchema = new Schema<Pricing>({
@@ -19,6 +20,7 @@ const PricingSchema = new Schema<Pricing>({
   createdAt: { type: Date, default: Date.now },
   productionCost: { type: Number, required: true },
   yields: { type: Number, required: true, min: 1 },
+  packing: { type: Number, required: true },
 })
 
 export default model<Pricing>('Pricing', PricingSchema)
