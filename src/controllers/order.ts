@@ -103,7 +103,6 @@ export const createOrder = async (req: FastifyRequest, reply: FastifyReply) => {
         inventory.quantity -= amountToSubtract
         await inventory.save()
       }
-      console.log('pricing', pricing.toObject())
       orderOBJ.items.push({
         pricing: orderItem.pricingId,
         quantity: orderItem.quantity,
@@ -422,7 +421,9 @@ export const generateOrderReport = async (
     worksheet.columns = [
       { header: 'ID do Pedido', key: 'orderId', width: 25 },
       { header: 'Cliente', key: 'customerName', width: 30 },
-      { header: 'Contato', key: 'customerContact', width: 20 },
+      { header: 'Número de telefone', key: 'phone', width: 20 },
+      { header: 'Email', key: 'email', width: 20 },
+      { header: 'Endereço', key: 'address', width: 20 },
       { header: 'Data do Pedido', key: 'orderDate', width: 15 },
       { header: 'Data de Entrega', key: 'dueDate', width: 15 },
       { header: 'Status', key: 'status', width: 15 },
@@ -447,8 +448,14 @@ export const generateOrderReport = async (
         style: { numFmt: '"R$" #,##0.00' },
       },
       {
+        header: 'Lucro(iFood) (R$)',
+        key: 'profitWithPlatformFee',
+        width: 18,
+        style: { numFmt: '"R$" #,##0.00' },
+      },
+      {
         header: 'Lucro (R$)',
-        key: 'profit',
+        key: 'profitWithoutPlatformFee',
         width: 18,
         style: { numFmt: '"R$" #,##0.00' },
       },
@@ -473,12 +480,19 @@ export const generateOrderReport = async (
         const quantity = item.quantity
         const totalPerItem = unitPrice * quantity
         const productionCost = pricing.productionCost * quantity
-        const profit = totalPerItem - productionCost
+        const profitWithoutPlatformFee = totalPerItem - productionCost
+
+        const platformTransfer = totalPerItem * (pricing.platformFee / 100)
+
+        const profitWithPlatformFee =
+          totalPerItem - platformTransfer - productionCost
 
         worksheet.addRow({
           orderId: order._id,
           customerName: order.customerDetails?.name || 'N/A',
-          customerContact: order.customerDetails || 'N/A',
+          phone: order.customerDetails.phone || 'N/A',
+          email: order.customerDetails.email || 'N/A',
+          address: order.customerDetails.address || 'N/A',
           orderDate: order.date.toISOString().split('T')[0],
           dueDate: order.dueDate.toISOString().split('T')[0],
           status: order.status,
@@ -487,7 +501,8 @@ export const generateOrderReport = async (
           unitPrice,
           totalPerItem,
           productionCost,
-          profit,
+          profitWithoutPlatformFee,
+          profitWithPlatformFee,
           notes: order.notes || '',
           totalOrderPrice: order.totalPrice,
         })

@@ -1,6 +1,6 @@
 import mongoose, { Schema, Document, Types } from 'mongoose'
 import { Pricing as PrigingDTO } from './pricing'
-import { Customer } from './customer'
+import { CustomerData } from './customer'
 
 export interface OrderItem {
   pricing: PrigingDTO
@@ -16,7 +16,7 @@ export interface Order extends Document {
   notes?: string
   status: string
   customer: Types.ObjectId
-  customerDetails: typeof Customer
+  customerDetails: CustomerData
 }
 
 const orderItemSchema = new mongoose.Schema({

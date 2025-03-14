@@ -1,6 +1,13 @@
 import mongoose from 'mongoose'
 
-const customerSchema = new mongoose.Schema({
+export interface CustomerData {
+  name: string
+  email: string
+  phone: string
+  address: string
+}
+
+const customerSchema = new mongoose.Schema<CustomerData>({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   phone: { type: String, required: true }, // Novo campo para telefone
