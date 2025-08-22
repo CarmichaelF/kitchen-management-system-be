@@ -8,6 +8,7 @@ interface UserRegisterDTO {
   name: string
   email: string
   password: string
+  role: 'admin' | 'user'
 }
 
 interface UserLoginDTO {
@@ -30,18 +31,19 @@ export const createUser = async (
   request: FastifyRequest,
   reply: FastifyReply,
 ): Promise<FastifyReply> => {
-  const { name, email, password } = request.body as UserRegisterDTO
+  const { name, email, password, role } = request.body as UserRegisterDTO
 
   try {
     let userRole = 'user'
     const hashedPassword = await bcrypt.hash(password, 10)
 
     const adminSecret = request.headers['x-admin-secret']
-    if (adminSecret !== process.env.ADMIN_SECRET) {
-      return reply.status(403).send({ message: 'Chave de admin inválida' })
-    } else {
-      userRole = 'admin'
-    }
+    if (role === 'admin')
+      if (adminSecret !== process.env.ADMIN_SECRET) {
+        return reply.status(403).send({ message: 'Chave de admin inválida' })
+      } else {
+        userRole = 'admin'
+      }
 
     const user = new User({
       name,
