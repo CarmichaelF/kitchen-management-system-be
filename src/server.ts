@@ -40,9 +40,10 @@ mongoose
 async function start() {
   try {
     await app.listen({
-      port: parseInt(process.env.PORT || "3333", 10),
+      port: Number(process.env.PORT) || 3333,
+      host: "0.0.0.0"
     });
-    app.log.info(`Servidor rodando na porta ${process.env.PORT || 3333}`);
+    console.log(`✅ Server running on http://0.0.0.0:${process.env.PORT || 3333}`);
   } catch (err) {
     app.log.error(err);
     process.exit(1);
