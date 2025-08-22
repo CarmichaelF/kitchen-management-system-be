@@ -46,7 +46,6 @@ export async function startWebsocket(
       await websocketController.updateSessionToDisconnected(
         session._id.toString(),
       )
-      console.log(`Usuário ${userId} desconectado.`)
       webSocket.deleteClient(connection)
     })
   } catch (error) {

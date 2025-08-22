@@ -8,7 +8,6 @@ interface UserRegisterDTO {
   name: string
   email: string
   password: string
-  role: 'admin' | 'editor' | 'user'
 }
 
 interface UserLoginDTO {
@@ -31,14 +30,18 @@ export const createUser = async (
   request: FastifyRequest,
   reply: FastifyReply,
 ): Promise<FastifyReply> => {
-  const { name, email, password, role } = request.body as UserRegisterDTO
+  const { name, email, password } = request.body as UserRegisterDTO
 
   try {
+    let userRole = 'user'
     const hashedPassword = await bcrypt.hash(password, 10)
 
-    // Apenas permite atribuir "admin" se não houver admins no sistema (para o primeiro admin)
-    const isFirstAdmin = (await User.countDocuments({ role: 'admin' })) === 0
-    const userRole = isFirstAdmin ? 'admin' : role || 'user'
+    const adminSecret = request.headers['x-admin-secret']
+    if (adminSecret !== process.env.ADMIN_SECRET) {
+      return reply.status(403).send({ message: 'Chave de admin inválida' })
+    } else {
+      userRole = 'admin'
+    }
 
     const user = new User({
       name,
@@ -68,7 +71,6 @@ export const loginUser = async (
   request: FastifyRequest,
   reply: FastifyReply,
 ): Promise<FastifyReply> => {
-  console.log('request', request)
   const { email, password } = request.body as UserLoginDTO
   try {
     // Certifique-se de que o retorno seja tipado corretamente
@@ -83,7 +85,6 @@ export const loginUser = async (
     if (!passwordMatch) {
       return reply.status(401).send({ message: 'Senha incorreta' })
     }
-
     const token = generateToken({ _id: user._id.toString(), email: user.email })
 
     return reply.send({

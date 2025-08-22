@@ -15,3 +15,5 @@ yarn-error.log*
 .pnpm-debug.log*
 
 /src/dist
+.env
+.env.local

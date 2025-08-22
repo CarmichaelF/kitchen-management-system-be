@@ -5,7 +5,7 @@ export interface IUser {
   name: string
   email: string
   password: string
-  role: 'admin' | 'editor' | 'user'
+  role: 'admin' | 'user'
 }
 
 // Estendendo o Document com a interface IUser
