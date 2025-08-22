@@ -141,6 +141,7 @@ export const createPricing = async (
     })
 
     await pricing.save()
+    await Product.findByIdAndUpdate(productId, { pricing: pricing._id })
     reply.code(201).send(await pricing.populate('product'))
   } catch (err) {
     console.error('Erro ao criar precificação:', err)
@@ -216,6 +217,7 @@ export const updatePricing = async (
     pricing.sellingPrice = sellingPrice
 
     await pricing.save()
+    await Product.findByIdAndUpdate(pricing.product, { pricing: pricing._id })
     reply.send({
       ...(await pricing.populate('product')),
       message: 'Precificação atualizada com sucesso',

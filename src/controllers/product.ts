@@ -2,8 +2,8 @@ import { FastifyRequest, FastifyReply } from 'fastify'
 import Product from '../models/product'
 import Inventory, { Unity } from '../models/inventory'
 import { Input } from '../models/input'
+import { Pricing } from '../models/pricing'
 
-// Tipos atualizados
 type ProductBody = {
   name: string
   ingredients: {
@@ -12,6 +12,8 @@ type ProductBody = {
     unity: Unity
     name: string
   }[]
+  pricing: Pricing
+  preparationMethod: string
 }
 
 export const createProduct = async (
@@ -36,6 +38,8 @@ export const createProduct = async (
     const product = new Product(productData)
     await product.save()
 
+    await product.populate('pricing')
+
     reply.code(201).send(product)
   } catch (err) {
     console.error('Erro ao criar produto:', err)
@@ -50,7 +54,6 @@ export const updateProduct = async (
   try {
     const { id } = req.params as { id: string }
     const productData = req.body as Partial<ProductBody>
-
     const product = await Product.findById(id)
     if (!product || product.isDeleted) {
       return reply.code(404).send({ message: 'Produto não encontrado' })
@@ -103,11 +106,9 @@ export const deleteProduct = async (
 
 export const getProducts = async (req: FastifyRequest, reply: FastifyReply) => {
   try {
-    const products = await Product.find({ isDeleted: false }).populate(
-      'ingredients.inventory',
-    )
-    console.log('products', products[0].ingredients)
-
+    const products = await Product.find({ isDeleted: false })
+      .populate('ingredients.inventory')
+      .populate('pricing')
     reply.send(products)
   } catch (err) {
     console.log(err)
