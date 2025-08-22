@@ -3,6 +3,7 @@
     "typeRoots": ["./node_modules/@types", "./src/types"],
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
+    "rootDir": "src",
     "outDir": "dist",
     "module": "commonjs",
     "target": "es2020",
